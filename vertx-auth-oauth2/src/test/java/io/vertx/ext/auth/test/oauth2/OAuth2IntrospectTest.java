@@ -49,12 +49,19 @@ public class OAuth2IntrospectTest extends VertxTestBase {
       "  \"nbf\": 0" +
       "}");
 
+  // a valid JWT token
   private static final String token = "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJhdXRob3JpemF0aW9uIjp7InBlcm1pc3Npb25zIjpbeyJyZXNvdXJjZV9zZXRfaWQiOiJkMmZlOTg0My02NDYyLTRiZmMtYmFiYS1iNTc4N2JiNmUwZTciLCJyZXNvdXJjZV9zZXRfbmFtZSI6IkhlbGxvIFdvcmxkIFJlc291cmNlIn1dfSwianRpIjoiZDYxMDlhMDktNzhmZC00OTk4LWJmODktOTU3MzBkZmQwODkyLTE0NjQ5MDY2Nzk0MDUiLCJleHAiOjk5OTk5OTk5OTksIm5iZiI6MCwiaWF0IjoxNDY0OTA2NjcxLCJzdWIiOiJmMTg4OGY0ZC01MTcyLTQzNTktYmUwYy1hZjMzODUwNWQ4NmMiLCJ0eXAiOiJrY19ldHQiLCJhenAiOiJoZWxsby13b3JsZC1hdXRoei1zZXJ2aWNlIn0";
-
   private static final JsonObject oauthIntrospect = new JsonObject()
     .put("token", token);
 
+  // a token that is not a JWT (the example from the RFC)
+  private static final String opaqueToken = "mF_9.B5f-4.1JqM";
+  private static final JsonObject opaqueOauthIntrospect = new JsonObject()
+    .put("token", opaqueToken);
+
+
   private OAuth2Auth oauth2;
+  private OAuth2Auth opaqueOauth2;
   private HttpServer server;
   private JsonObject config;
   private JsonObject fixture;
@@ -69,6 +76,7 @@ public class OAuth2IntrospectTest extends VertxTestBase {
   public void setUp() throws Exception {
     super.setUp();
     oauth2 = OAuth2Auth.create(vertx, OAuth2FlowType.AUTH_CODE, oauthConfig);
+    opaqueOauth2 = OAuth2Auth.create(vertx, OAuth2FlowType.AUTH_CODE, oauthConfig.setJWTToken(false));
 
     final CountDownLatch latch = new CountDownLatch(1);
 
@@ -121,6 +129,42 @@ public class OAuth2IntrospectTest extends VertxTestBase {
     config = oauthIntrospect;
     fixture = fixtureIntrospect;
     oauth2.introspectToken(token, res -> {
+      if (res.failed()) {
+        fail(res.cause().getMessage());
+      } else {
+        AccessToken token = res.result();
+        assertNotNull(token);
+        JsonObject principal = token.principal();
+
+        // clean time specific value
+        principal.remove("expires_at");
+        principal.remove("access_token");
+
+        final JsonObject assertion = fixtureIntrospect.copy();
+
+        assertEquals(assertion.getMap(), principal.getMap());
+
+        token.isAuthorized("scopeB", res0 -> {
+          if (res0.failed()) {
+            fail(res0.cause().getMessage());
+          } else {
+            if (res0.result()) {
+              testComplete();
+            } else {
+              fail("Should be allowed");
+            }
+          }
+        });
+      }
+    });
+    await();
+  }
+
+  @Test
+  public void introspectOpaqueAccessToken() {
+    config = opaqueOauthIntrospect;
+    fixture = fixtureIntrospect;
+    opaqueOauth2.introspectToken(opaqueToken, res -> {
       if (res.failed()) {
         fail(res.cause().getMessage());
       } else {

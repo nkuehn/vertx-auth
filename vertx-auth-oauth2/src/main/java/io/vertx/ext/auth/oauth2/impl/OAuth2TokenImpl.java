@@ -52,11 +52,6 @@ public class OAuth2TokenImpl extends AbstractUser implements AccessToken {
 
   private OAuth2AuthProviderImpl provider;
   private boolean trustJWT = false;
-  /**
-   * token is treated as a JWT vs. as an opaque string
-   * TODO alternative naming : opaqueOnly , opaqueMode, asJWT
-   */
-  private boolean decodeJWT = true;
 
   /**
    * The RAW token
@@ -65,8 +60,8 @@ public class OAuth2TokenImpl extends AbstractUser implements AccessToken {
 
   /**
    * This json's are built from the access_token and id_token if present
-   * If the decodeJWT flag is `true`, the json is built assuming it is encoded as JWT
-   * If the decodeJWT flag is `false`, the values are null
+   * If the provider is configured to use JWT tokens, the json is built assuming it is encoded as JWT
+   * Otherwise, the values are null
    */
   private JsonObject accessToken;
   private JsonObject refreshToken;
@@ -89,20 +84,6 @@ public class OAuth2TokenImpl extends AbstractUser implements AccessToken {
 
     init();
   }
-
-  /**
-   * Creates an AccessToken instance.
-   *
-   * @param token - An object containing the token object returned from the OAuth2 server.
-   */
-  public OAuth2TokenImpl(OAuth2AuthProviderImpl provider, JsonObject token, Boolean decodeJWT) {
-    this.decodeJWT = decodeJWT;
-    this.provider = provider;
-    this.token = token;
-
-    init();
-  }
-
 
   private JsonObject decodeToken(String opaque) {
     if (opaque == null) {
@@ -166,7 +147,7 @@ public class OAuth2TokenImpl extends AbstractUser implements AccessToken {
   }
 
   private void decodeJWT(){
-    if(decodeJWT){
+    if(provider.hasJWTToken()){
       accessToken = decodeToken(token.getString("access_token"));
       refreshToken = decodeToken(token.getString("refresh_token"));
       idToken = decodeToken(token.getString("id_token"));
@@ -231,7 +212,7 @@ public class OAuth2TokenImpl extends AbstractUser implements AccessToken {
     }
 
     // delegate to the JWT lib
-    return decodeJWT && provider.getJWT().isExpired(accessToken, provider.getConfig().getJWTOptions());
+    return provider.hasJWTToken() && provider.getJWT().isExpired(accessToken, provider.getConfig().getJWTOptions());
   }
 
   /**
