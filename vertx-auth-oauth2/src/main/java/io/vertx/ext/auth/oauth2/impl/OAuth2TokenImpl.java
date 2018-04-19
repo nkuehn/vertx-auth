@@ -127,7 +127,11 @@ public class OAuth2TokenImpl extends AbstractUser implements AccessToken {
 
     // attempt to decode tokens
     if (provider != null) {
-      decodeJWT();
+      if(provider.hasJWTToken()){
+        accessToken = decodeToken(token.getString("access_token"));
+        refreshToken = decodeToken(token.getString("refresh_token"));
+        idToken = decodeToken(token.getString("id_token"));
+      }
       // the permission cache needs to be clear
       clearCache();
       // rebuild cache
@@ -142,16 +146,12 @@ public class OAuth2TokenImpl extends AbstractUser implements AccessToken {
   @Override
   public AccessToken setTrustJWT(boolean trust) {
     this.trustJWT = trust;
-    decodeJWT();
-    return this;
-  }
-
-  private void decodeJWT(){
     if(provider.hasJWTToken()){
       accessToken = decodeToken(token.getString("access_token"));
       refreshToken = decodeToken(token.getString("refresh_token"));
       idToken = decodeToken(token.getString("id_token"));
     }
+    return this;
   }
 
   @Override
@@ -531,6 +531,18 @@ public class OAuth2TokenImpl extends AbstractUser implements AccessToken {
               return;
             }
 
+            // RFC7662 dictates that there is a boolean active field (however tokeninfo implementations do not return this)
+            if (json.containsKey("active") && !json.getBoolean("active", false)) {
+              handler.handle(Future.failedFuture("Inactive Token"));
+              return;
+            }
+
+            // validate client id
+            if (json.containsKey("client_id") && !json.getString("client_id", "").equals(provider.getConfig().getClientID())) {
+              handler.handle(Future.failedFuture("Wrong client_id"));
+              return;
+            }
+
             try {
               processNonStandardHeaders(json, reply, config.getScopeSeparator());
               // reset the access token
@@ -739,7 +751,11 @@ public class OAuth2TokenImpl extends AbstractUser implements AccessToken {
   public void setAuthProvider(AuthProvider authProvider) {
     provider = (OAuth2AuthProviderImpl) authProvider;
     // re-attempt to decode tokens
-    decodeJWT();
+    if(provider.hasJWTToken()){
+      accessToken = decodeToken(token.getString("access_token"));
+      refreshToken = decodeToken(token.getString("refresh_token"));
+      idToken = decodeToken(token.getString("id_token"));
+    }
     // the permission cache needs to be clear
     clearCache();
     // rebuild cache
