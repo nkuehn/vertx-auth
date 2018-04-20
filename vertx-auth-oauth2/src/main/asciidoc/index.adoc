@@ -24,6 +24,8 @@ compile 'io.vertx:vertx-auth-oauth2:${maven.version}'
 OAuth2 lets users grant the access to the desired resources to third party applications, giving them the possibility
 to enable and disable those accesses whenever they want.
 
+The provider defaults to treating tokens as JWT tokens but can be configured to treat tokens as opaque strings only.
+
 Vert.x OAuth2 supports the following flows.
 
 * Authorization Code Flow (for apps with servers that can store persistent information).
@@ -171,7 +173,7 @@ service account.
 
 === Token Introspection
 
-Tokens can be introspected in order to assert that they are still valid. Although there is RFC7660 for this purpose
+Tokens can be introspected in order to assert that they are still valid. Although there is RFC7662 for this purpose
 not many providers implement it. Instead there are variations also known as `TokenInfo` end points. The OAuth2
 provider will accept both end points as a configuration. Currently we are known to work with `Google` and `Keycloak`.
 
@@ -220,7 +222,7 @@ In order to map to keycloak's token format the following checks are performed:
 
 1. If no role is provided, it is assumed to the the provider realm name
 2. If the role is `realm` then the lookup happens in `realm_access` list
-3. If a role is provided then the lookup happends in the `resource_access` list under the role name
+3. If a role is provided then the lookup happens in the `resource_access` list under the role name
 
 === Check for a specific authorities
 
@@ -304,7 +306,7 @@ means that the check happens on the OAuth2 server.
 ----
 
 Important note is that even if the `expired()` call is `true` the return from the `introspect` call can still be an
-error. This is because the OAuth2 might have received a request to invalidate the token or a loggout in between.
+error. This is because the OAuth2 might have received a request to invalidate the token or a logout in between.
 
 === Logging out
 
