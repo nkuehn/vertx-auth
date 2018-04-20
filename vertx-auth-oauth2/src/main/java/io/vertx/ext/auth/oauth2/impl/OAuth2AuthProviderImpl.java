@@ -206,6 +206,11 @@ public class OAuth2AuthProviderImpl implements OAuth2Auth {
   }
 
   @Override
+  public boolean isOpaqueToken() {
+    return config.isOpaqueToken();
+  }
+
+  @Override
   public OAuth2Auth decodeToken(String token, Handler<AsyncResult<AccessToken>> handler) {
     try {
       handler.handle(Future.succeededFuture(new OAuth2TokenImpl(this, new JsonObject().put("access_token", token))));
@@ -232,6 +237,7 @@ public class OAuth2AuthProviderImpl implements OAuth2Auth {
           return;
         }
         // the access token object should have updated it's claims/authorities plus expiration, recheck
+        // TODO this check is redundant to the the check already done in OAuth2TokenImpl.introspect(). omit?
         if (accessToken.expired()) {
           handler.handle(Future.failedFuture("Expired token"));
           return;

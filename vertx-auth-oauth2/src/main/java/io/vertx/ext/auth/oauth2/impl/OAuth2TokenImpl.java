@@ -127,7 +127,7 @@ public class OAuth2TokenImpl extends AbstractUser implements AccessToken {
 
     // attempt to decode tokens
     if (provider != null) {
-      if(provider.hasJWTToken()){
+      if(!provider.isOpaqueToken()){
         accessToken = decodeToken(token.getString("access_token"));
         refreshToken = decodeToken(token.getString("refresh_token"));
         idToken = decodeToken(token.getString("id_token"));
@@ -146,7 +146,7 @@ public class OAuth2TokenImpl extends AbstractUser implements AccessToken {
   @Override
   public AccessToken setTrustJWT(boolean trust) {
     this.trustJWT = trust;
-    if(provider.hasJWTToken()){
+    if(!provider.isOpaqueToken()){
       accessToken = decodeToken(token.getString("access_token"));
       refreshToken = decodeToken(token.getString("refresh_token"));
       idToken = decodeToken(token.getString("id_token"));
@@ -200,6 +200,7 @@ public class OAuth2TokenImpl extends AbstractUser implements AccessToken {
 
   /**
    * Check if the access token is expired or not.
+   * Opaque tokens are considered not expired
    */
   @Override
   public boolean expired() {
@@ -211,8 +212,8 @@ public class OAuth2TokenImpl extends AbstractUser implements AccessToken {
       return true;
     }
 
-    // delegate to the JWT lib
-    return provider.hasJWTToken() && provider.getJWT().isExpired(accessToken, provider.getConfig().getJWTOptions());
+    // delegate to the JWT lib if JWT
+    return !provider.isOpaqueToken() && provider.getJWT().isExpired(accessToken, provider.getConfig().getJWTOptions());
   }
 
   /**
@@ -549,9 +550,18 @@ public class OAuth2TokenImpl extends AbstractUser implements AccessToken {
               token.mergeIn(json);
               init();
 
-              if (expired()) {
-                handler.handle(Future.failedFuture("Expired token"));
-                return;
+              if (config.isOpaqueToken()) {
+                // opaque / non JWT tokens can nevertheless be checked using JWT logic because the RF6772 response
+                // is using JWT fields for all validity information by passing the introspection result instead of the JWT
+                if( provider.getJWT().isExpired(json, provider.getConfig().getJWTOptions())){
+                  handler.handle(Future.failedFuture("Expired token"));
+                  return;
+                }
+              } else {
+                if (expired()) {
+                  handler.handle(Future.failedFuture("Expired token"));
+                  return;
+                }
               }
 
               handler.handle(Future.succeededFuture());
@@ -751,7 +761,7 @@ public class OAuth2TokenImpl extends AbstractUser implements AccessToken {
   public void setAuthProvider(AuthProvider authProvider) {
     provider = (OAuth2AuthProviderImpl) authProvider;
     // re-attempt to decode tokens
-    if(provider.hasJWTToken()){
+    if(!provider.isOpaqueToken()){
       accessToken = decodeToken(token.getString("access_token"));
       refreshToken = decodeToken(token.getString("refresh_token"));
       idToken = decodeToken(token.getString("id_token"));

@@ -43,12 +43,14 @@ public class OAuth2ClientOptions extends HttpClientOptions {
   private static final JWTOptions JWT_OPTIONS = new JWTOptions();
   private static final String SCOPE_SEPARATOR = " ";
   private static final boolean JWT_TOKEN = false;
+  private static final boolean OPAQUE_TOKEN = false;
 
   private String authorizationPath;
   private String tokenPath;
   private String revocationPath;
   private String scopeSeparator;
   private boolean jwtToken;
+  private boolean isOpaqueToken;
   // this is an openid-connect extension
   private String logoutPath;
   private boolean useBasicAuthorizationHeader;
@@ -484,6 +486,26 @@ public class OAuth2ClientOptions extends HttpClientOptions {
 
   public OAuth2ClientOptions setJWTToken(boolean jwtToken) {
     this.jwtToken = jwtToken;
+    return this;
+  }
+
+  /**
+   * Whether tokens shall be decoded, encoded and validated as JWT or treated as opaque strings.
+   * Defaults to JWT tokens.
+   * @return a boolean that is true when tokens are to be treated as opaque strings.
+   */
+  public boolean isOpaqueToken() {
+    return isOpaqueToken;
+  }
+
+  /**
+   * Enable or disable decoding, encoding and validating token strings as JWT.
+   * Defaults to JWT tokens.
+   * @param isOpaqueToken boolean
+   * @return self
+   */
+  public OAuth2ClientOptions setIsOpaqueToken(boolean isOpaqueToken) {
+    this.isOpaqueToken = isOpaqueToken;
     return this;
   }
 }

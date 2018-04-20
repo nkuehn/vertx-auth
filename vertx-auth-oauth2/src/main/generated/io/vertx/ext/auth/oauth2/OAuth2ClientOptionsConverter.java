@@ -48,6 +48,9 @@ public class OAuth2ClientOptionsConverter {
     if (json.getValue("introspectionPath") instanceof String) {
       obj.setIntrospectionPath((String)json.getValue("introspectionPath"));
     }
+    if (json.getValue("isOpaqueToken") instanceof Boolean) {
+      obj.setIsOpaqueToken((Boolean)json.getValue("isOpaqueToken"));
+    }
     if (json.getValue("jwkPath") instanceof String) {
       obj.setJwkPath((String)json.getValue("jwkPath"));
     }
@@ -123,6 +126,7 @@ public class OAuth2ClientOptionsConverter {
     if (obj.getLogoutPath() != null) {
       json.put("logoutPath", obj.getLogoutPath());
     }
+    json.put("opaqueToken", obj.isOpaqueToken());
     if (obj.getRevocationPath() != null) {
       json.put("revocationPath", obj.getRevocationPath());
     }

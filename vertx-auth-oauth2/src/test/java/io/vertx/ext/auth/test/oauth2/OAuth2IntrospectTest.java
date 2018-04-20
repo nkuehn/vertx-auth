@@ -30,6 +30,12 @@ public class OAuth2IntrospectTest extends VertxTestBase {
       "  \"nbf\": 7200" +
       "}");
 
+  // according to RFC (minimal required response)
+  private static final JsonObject fixtureIntrospectMinimal = new JsonObject(
+    "{" +
+      "  \"active\": true" +
+      "}");
+
   // according to Google
   private static final JsonObject fixtureGoogle = new JsonObject(
     "{" +
@@ -78,7 +84,7 @@ public class OAuth2IntrospectTest extends VertxTestBase {
   public void setUp() throws Exception {
     super.setUp();
     oauth2 = OAuth2Auth.create(vertx, OAuth2FlowType.AUTH_CODE, oauthConfig);
-    opaqueOauth2 = OAuth2Auth.create(vertx, OAuth2FlowType.AUTH_CODE, oauthConfig.setJWTToken(false));
+    opaqueOauth2 = OAuth2Auth.create(vertx, OAuth2FlowType.AUTH_CODE, new OAuth2ClientOptions(oauthConfig).setIsOpaqueToken(true));
 
     final CountDownLatch latch = new CountDownLatch(1);
 
@@ -197,6 +203,31 @@ public class OAuth2IntrospectTest extends VertxTestBase {
     });
     await();
   }
+
+  @Test
+  public void minimalIntrospectAccessToken() {
+    config = opaqueOauthIntrospect;
+    fixture = fixtureIntrospectMinimal;
+    opaqueOauth2.introspectToken(opaqueToken, res -> {
+      if (res.failed()) {
+        fail(res.cause().getMessage());
+      } else {
+        AccessToken token = res.result();
+        assertNotNull(token);
+        JsonObject principal = token.principal();
+
+        principal.remove("access_token");
+
+        final JsonObject assertion = fixtureIntrospectMinimal.copy();
+
+        assertEquals(assertion.getMap(), principal.getMap());
+
+        testComplete();
+      }
+    });
+    await();
+  }
+
 
   @Test
   public void introspectAccessTokenGoogleWay() {

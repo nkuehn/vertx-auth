@@ -21,7 +21,6 @@ import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.AuthProvider;
 import io.vertx.ext.auth.PubSecKeyOptions;
@@ -143,6 +142,18 @@ public interface OAuth2Auth extends AuthProviderInternal {
    * @return true if openid-connect is used.
    */
   boolean hasJWTToken();
+
+  /**
+   * Returns true if this treats token strings as JWT tokens.
+   * This is a plain return from the config option isOpaqueToken, which is false by default.
+   *
+   * This information is important to not rely on any integrity or meaning of tokens.
+   * If it is true, the {@link AccessToken} provided e.g. by {@link #decodeToken(String, Handler)}
+   * or {@link #introspectToken(String, Handler)} do not provide certain decoded data
+   *
+   * @return true if the provider treats tokens as opaque strings.
+   */
+  boolean isOpaqueToken();
 
   /**
    * Decode a token to a {@link AccessToken} object. This is useful to handle bearer JWT tokens.
