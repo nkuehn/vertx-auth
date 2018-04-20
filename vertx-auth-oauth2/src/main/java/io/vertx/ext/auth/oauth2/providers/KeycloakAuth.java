@@ -91,9 +91,9 @@ public interface KeycloakAuth {
       options.addPubSecKey(new PubSecKeyOptions()
         .setAlgorithm("RS256")
         .setPublicKey(config.getString("realm-public-key")));
+      // we could load keys
+      options.setJWTToken(true);
     }
-    // keycloak uses JWT
-    options.setJWTToken(true);
 
     return OAuth2Auth.create(vertx, flow, options);
   }
