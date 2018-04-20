@@ -59,9 +59,8 @@ public class OAuth2TokenImpl extends AbstractUser implements AccessToken {
   private JsonObject token;
 
   /**
-   * This json's are built from the access_token and id_token if present
-   * If the provider is configured to use JWT tokens, the json is built assuming it is encoded as JWT
-   * Otherwise, the values are null
+   * This json's are built from the access_token and id_token if present, assuming it is encoded as JWT
+   * unless the provider is configured to treat tokens as opaque via {@link OAuth2ClientOptions}
    */
   private JsonObject accessToken;
   private JsonObject refreshToken;
@@ -551,8 +550,8 @@ public class OAuth2TokenImpl extends AbstractUser implements AccessToken {
               init();
 
               if (config.isOpaqueToken()) {
-                // opaque / non JWT tokens can nevertheless be checked using JWT logic because the RF6772 response
-                // is using JWT fields for all validity information by passing the introspection result instead of the JWT
+                // opaque token introspection results can nevertheless be checked using JWT logic because the RF6772 response
+                // is using JWT fields for all validity information
                 if( provider.getJWT().isExpired(json, provider.getConfig().getJWTOptions())){
                   handler.handle(Future.failedFuture("Expired token"));
                   return;
